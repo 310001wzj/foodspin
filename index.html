@@ -543,12 +543,6 @@
             "#FF9999", "#FFCC99", "#FFFF99", "#99FF99", "#99CCFF", 
             "#CC99FF", "#FF99CC", "#66CCCC", "#FFB366", "#CCFF66"
         ];
-
-        // 資料結構 V2
-        // appData = {
-        //    menus: { breakfast: [], lunch: [], dinner: [] },
-        //    stats: { breakfast: {}, lunch: {}, dinner: {} }
-        // }
         
         let appData = {
             menus: JSON.parse(JSON.stringify(defaultMenus)),
@@ -591,13 +585,6 @@
             if (savedData) {
                 appData = JSON.parse(savedData);
             } else {
-                // 嘗試遷移舊資料 (如果有的話)
-                const oldStats = localStorage.getItem('food_spinner_stats');
-                if (oldStats) {
-                    // 這裡簡化處理，舊資料全部歸類到「不分類」或者乾脆重新開始
-                    // 為了系統乾淨，這裡選擇直接使用預設值，不繼承舊的混亂資料
-                    console.log("偵測到舊版資料，系統已升級至 V2 分類版本。");
-                }
                 saveData();
             }
         }
@@ -659,6 +646,23 @@
             return map[cat];
         }
 
+        // 取得項目權重 (權重越高，扇形越大)
+        function getItemWeight(itemName) {
+            const categoryStats = appData.stats[currentCategory];
+            if (!categoryStats) return 10;
+            
+            const itemStats = categoryStats[itemName];
+            // 沒有評分紀錄：權重 10 (標準)
+            if (!itemStats || !itemStats.rating) return 10; 
+
+            const r = itemStats.rating;
+            if (r <= 2) return 3;   // 1-2星：權重 3 (變很小，約標準的30%)
+            if (r === 3) return 8;  // 3星：權重 8 (稍微變小)
+            if (r >= 4) return 12;  // 4-5星：權重 12 (稍微放大，約標準的120%)
+            
+            return 10;
+        }
+
         // 繪製轉盤
         function drawWheel() {
             if (items.length === 0) {
@@ -673,14 +677,31 @@
             const centerX = canvas.width / 2;
             const centerY = canvas.height / 2;
             const radius = canvas.width / 2 - 10;
-            const step = (2 * Math.PI) / items.length;
+            
+            // 1. 計算總權重
+            let totalWeight = 0;
+            items.forEach(item => totalWeight += getItemWeight(item));
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            for (let i = 0; i < items.length; i++) {
-                const startAngle = currentAngle + i * step;
-                const endAngle = currentAngle + (i + 1) * step;
+            // 決定字體大小 (比之前加大)
+            let baseFontSize = 48; 
+            if (items.length > 20) baseFontSize = 24;
+            else if (items.length > 12) baseFontSize = 32;
 
+            let currentSliceStart = 0;
+
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                const weight = getItemWeight(item);
+                
+                // 根據權重計算該項目佔的角度
+                const sliceAngle = (weight / totalWeight) * 2 * Math.PI;
+
+                const startAngle = currentAngle + currentSliceStart;
+                const endAngle = startAngle + sliceAngle;
+
+                // 畫扇形
                 ctx.beginPath();
                 ctx.moveTo(centerX, centerY);
                 ctx.arc(centerX, centerY, radius, startAngle, endAngle);
@@ -688,19 +709,25 @@
                 ctx.fill();
                 ctx.stroke();
 
+                // 畫文字
                 ctx.save();
                 ctx.translate(centerX, centerY);
-                ctx.rotate(startAngle + step / 2);
+                // 旋轉到扇形中間
+                ctx.rotate(startAngle + sliceAngle / 2);
                 ctx.textAlign = "right";
                 ctx.fillStyle = "#333";
-                // 動態調整字體大小以適應更多選項
-                let fontSize = 36;
-                if (items.length > 20) fontSize = 18;
-                else if (items.length > 12) fontSize = 24;
+                ctx.font = `bold ${baseFontSize}px Microsoft JhengHei`;
                 
-                ctx.font = `bold ${fontSize}px Microsoft JhengHei`;
+                // 如果是低權重的項目(很窄)，字體稍微縮小一點避免重疊太嚴重
+                if (weight < 5 && items.length > 10) {
+                     ctx.font = `bold ${baseFontSize * 0.8}px Microsoft JhengHei`;
+                }
+
                 ctx.fillText(items[i], radius - 40, 10);
                 ctx.restore();
+
+                // 更新下一個扇形的起始位置
+                currentSliceStart += sliceAngle;
             }
         }
 
@@ -723,6 +750,7 @@
             spinVelocity *= 0.985;
             currentAngle += spinVelocity;
 
+            // 保持角度在合理範圍
             if (currentAngle >= 2 * Math.PI) {
                 currentAngle -= 2 * Math.PI;
             }
@@ -741,13 +769,35 @@
             spinBtn.disabled = false;
             cancelAnimationFrame(requestAnimationFrameId);
 
-            const step = (2 * Math.PI) / items.length;
-            const normalizedAngle = currentAngle % (2 * Math.PI);
-            let pointerAngle = (1.5 * Math.PI - normalizedAngle);
-            if (pointerAngle < 0) pointerAngle += 2 * Math.PI;
+            // 計算結果
+            // 指針在 270度 (3/2 PI) 的位置
+            // 轉換指針角度到相對於轉盤起始點(0度)的座標系中
+            let pointerLocalAngle = (1.5 * Math.PI - (currentAngle % (2 * Math.PI)));
+            // 處理負角度
+            if (pointerLocalAngle < 0) pointerLocalAngle += 2 * Math.PI;
 
-            const index = Math.floor(pointerAngle / step);
-            currentResult = items[index];
+            // 重新計算每個扇形的區間來找出贏家
+            let totalWeight = 0;
+            items.forEach(item => totalWeight += getItemWeight(item));
+
+            let accumulatedAngle = 0;
+            
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                const weight = getItemWeight(item);
+                const sliceAngle = (weight / totalWeight) * 2 * Math.PI;
+                
+                // 檢查指針是否落在這個扇形區間內
+                if (pointerLocalAngle >= accumulatedAngle && pointerLocalAngle < accumulatedAngle + sliceAngle) {
+                    currentResult = item;
+                    break;
+                }
+                
+                accumulatedAngle += sliceAngle;
+            }
+            
+            // 萬一計算誤差沒抓到 (極少見)，預設最後一個
+            if (!currentResult) currentResult = items[items.length - 1];
 
             showResult(currentResult);
         }
@@ -755,7 +805,6 @@
         function showResult(text) {
             resultText.textContent = text;
             
-            // 讀取該類別下的該食物評分
             const categoryStats = appData.stats[currentCategory] || {};
             const foodData = categoryStats[text];
 
@@ -768,9 +817,7 @@
             document.getElementById('resultModal').classList.add('show');
         }
 
-        // 確認選擇並儲存
         function confirmChoice() {
-            // 確保該類別統計物件存在
             if (!appData.stats[currentCategory]) {
                 appData.stats[currentCategory] = {};
             }
@@ -789,6 +836,8 @@
 
             saveData();
             closeModal('resultModal');
+            // 重新繪製轉盤，因為評分可能改變了權重
+            drawWheel();
         }
 
         function closeModal(modalId) {
@@ -797,7 +846,6 @@
 
         // --- 統計相關功能 ---
         function openStats() {
-            // 開啟時預設顯示當前類別
             switchStatsTab(currentCategory);
             document.getElementById('statsModal').classList.add('show');
         }
@@ -805,7 +853,6 @@
         function switchStatsTab(category) {
             statsTabCategory = category;
             
-            // 更新 Tab UI
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.getElementById(`tab-${category}`).classList.add('active');
 
@@ -818,10 +865,9 @@
 
             const categoryStats = appData.stats[statsTabCategory] || {};
 
-            // 轉換為陣列並排序
             const sortedItems = Object.entries(categoryStats)
                 .sort(([,a], [,b]) => b.count - a.count)
-                .slice(0, 10); // 取前十名
+                .slice(0, 10); 
 
             if (sortedItems.length === 0) {
                 list.innerHTML = `<li class="stat-empty">目前 ${getCategoryName(statsTabCategory)} 還沒有紀錄喔！</li>`;
@@ -844,7 +890,6 @@
 
         // --- 編輯菜單功能 ---
         function openEditMenu() {
-            // 編輯時針對當前選擇的類別
             document.getElementById('editCategoryTitle').textContent = `目前編輯：${getCategoryName(currentCategory)}`;
             renderEditList();
             document.getElementById('editModal').classList.add('show');
@@ -871,17 +916,16 @@
             const val = newItemInput.value.trim();
             if (!val) return;
             
-            // 檢查是否重複
             if (appData.menus[currentCategory].includes(val)) {
                 alert("這個選項已經在菜單裡囉！");
                 return;
             }
 
             appData.menus[currentCategory].push(val);
-            saveData(); // 儲存
+            saveData();
             newItemInput.value = '';
-            renderEditList(); // 重新渲染列表
-            updateItemsAndWheel(); // 更新轉盤
+            renderEditList(); 
+            updateItemsAndWheel(); 
         }
 
         function removeItem(index) {
@@ -895,11 +939,9 @@
         
         function closeEditModal() {
             closeModal('editModal');
-            // 確保轉盤最新
             updateItemsAndWheel();
         }
 
-        // 點擊遮罩關閉
         window.onclick = function(event) {
             if (event.target.classList.contains('modal')) {
                 event.target.classList.remove('show');
