@@ -11,6 +11,7 @@
             --background-color: #f7f9fc;
             --text-color: #2d3436;
             --gold-color: #ffd700;
+            --danger-color: #ff4757;
         }
 
         body {
@@ -33,13 +34,15 @@
 
         .top-bar {
             display: flex;
-            justify-content: flex-end;
+            justify-content: center;
+            gap: 10px;
             width: 100%;
             max-width: 500px;
             margin-bottom: 10px;
+            flex-wrap: wrap;
         }
 
-        .stats-btn {
+        .action-btn {
             background: white;
             border: 2px solid var(--secondary-color);
             color: var(--secondary-color);
@@ -51,10 +54,21 @@
             align-items: center;
             gap: 5px;
             transition: all 0.2s;
+            font-size: 0.9rem;
         }
 
-        .stats-btn:hover {
+        .action-btn:hover {
             background: var(--secondary-color);
+            color: white;
+        }
+        
+        .action-btn.edit-btn {
+            border-color: #ffa502;
+            color: #ffa502;
+        }
+        
+        .action-btn.edit-btn:hover {
+            background: #ffa502;
             color: white;
         }
 
@@ -140,7 +154,7 @@
             font-size: 1.2rem;
             border-radius: 50px;
             cursor: pointer;
-            margin-top: 30px;
+            margin-top: 20px;
             box-shadow: 0 6px 20px rgba(0,0,0,0.2);
             transition: transform 0.2s, background 0.2s;
             font-weight: bold;
@@ -157,7 +171,8 @@
             transform: none;
         }
 
-        .result-modal, .stats-modal {
+        /* Modal Styles */
+        .modal {
             position: fixed;
             top: 0;
             left: 0;
@@ -173,7 +188,7 @@
             z-index: 100;
         }
 
-        .result-modal.show, .stats-modal.show {
+        .modal.show {
             opacity: 1;
             pointer-events: auto;
         }
@@ -187,10 +202,13 @@
             transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             box-shadow: 0 10px 40px rgba(0,0,0,0.3);
             max-width: 90%;
-            width: 350px;
+            width: 400px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
         }
 
-        .result-modal.show .modal-content, .stats-modal.show .modal-content {
+        .modal.show .modal-content {
             transform: scale(1);
         }
 
@@ -260,6 +278,29 @@
             cursor: pointer;
             font-size: 1rem;
             margin-top: 20px;
+            align-self: center;
+        }
+
+        /* Stats List Styles */
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #eee;
+            margin-bottom: 15px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 10px;
+            cursor: pointer;
+            color: #888;
+            font-weight: bold;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
         }
 
         .stats-list {
@@ -267,8 +308,8 @@
             padding: 0;
             margin: 0;
             text-align: left;
-            max-height: 300px;
             overflow-y: auto;
+            flex-grow: 1;
         }
 
         .stats-item {
@@ -301,24 +342,105 @@
             font-size: 0.9rem;
         }
 
-        .edit-hint {
-            margin-top: 20px;
-            font-size: 0.8rem;
-            color: #aaa;
-        }
-
         .stat-empty {
             color: #aaa;
             padding: 20px;
             font-style: italic;
+        }
+
+        /* Edit Menu Styles */
+        .edit-input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .edit-input {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #eee;
+            border-radius: 20px;
+            outline: none;
+        }
+        
+        .edit-input:focus {
+            border-color: var(--secondary-color);
+        }
+
+        .add-btn {
+            background: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 0 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .edit-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 300px;
+            overflow-y: auto;
+            text-align: left;
+            border: 1px solid #eee;
+            border-radius: 10px;
+        }
+
+        .edit-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            border-bottom: 1px solid #eee;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .edit-item:last-child {
+            border-bottom: none;
+        }
+
+        .delete-btn {
+            background: #fff0f0;
+            color: var(--danger-color);
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        .delete-btn:hover {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        .current-edit-category {
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            font-size: 0.9rem;
         }
     </style>
 </head>
 <body>
 
     <div class="top-bar">
-        <button class="stats-btn" onclick="openStats()">
-            📊 查看美味紀錄
+        <button class="action-btn" onclick="openStats()">
+            📊 美味紀錄
+        </button>
+        <button class="action-btn edit-btn" onclick="openEditMenu()">
+            📝 編輯菜單
         </button>
     </div>
 
@@ -337,10 +459,8 @@
 
     <button id="spin-btn" onclick="spin()">開始旋轉！</button>
 
-    <p class="edit-hint">提示：切換上方按鈕可以改變轉盤內容</p>
-
     <!-- 結果彈窗 -->
-    <div class="result-modal" id="resultModal">
+    <div class="modal result-modal" id="resultModal">
         <div class="modal-content">
             <div class="result-title">命運的安排是...</div>
             <div class="result-food" id="resultText">???</div>
@@ -355,43 +475,66 @@
             </div>
 
             <div class="modal-buttons">
-                <button class="btn btn-cancel" onclick="closeModal()">再轉一次</button>
+                <button class="btn btn-cancel" onclick="closeModal('resultModal')">再轉一次</button>
                 <button class="btn btn-confirm" onclick="confirmChoice()">決定吃這個！</button>
             </div>
         </div>
     </div>
 
     <!-- 統計彈窗 -->
-    <div class="stats-modal" id="statsModal">
+    <div class="modal" id="statsModal">
         <div class="modal-content">
-            <h2 style="color: var(--text-color); margin-top:0;">🏆 最常吃的 TOP 5</h2>
+            <h2 style="color: var(--text-color); margin:0 0 10px 0;">🏆 美味排行榜</h2>
+            <div class="tabs">
+                <div class="tab" id="tab-breakfast" onclick="switchStatsTab('breakfast')">早餐</div>
+                <div class="tab" id="tab-lunch" onclick="switchStatsTab('lunch')">午餐</div>
+                <div class="tab" id="tab-dinner" onclick="switchStatsTab('dinner')">晚餐</div>
+            </div>
             <ul class="stats-list" id="statsList">
                 <!-- 列表將由 JS 生成 -->
             </ul>
-            <button class="close-btn" onclick="closeStats()">關閉</button>
+            <button class="close-btn" onclick="closeModal('statsModal')">關閉</button>
+        </div>
+    </div>
+
+    <!-- 編輯菜單彈窗 -->
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <h2 style="color: var(--text-color); margin:0;">編輯菜單</h2>
+            <p class="current-edit-category" id="editCategoryTitle">目前編輯：早餐</p>
+            
+            <div class="edit-input-group">
+                <input type="text" class="edit-input" id="newItemInput" placeholder="輸入想吃的食物..." maxlength="10">
+                <button class="add-btn" onclick="addItem()">新增</button>
+            </div>
+
+            <ul class="edit-list" id="editList">
+                <!-- 列表將由 JS 生成 -->
+            </ul>
+
+            <div class="modal-buttons">
+                 <button class="close-btn" onclick="closeEditModal()">完成編輯</button>
+            </div>
         </div>
     </div>
 
     <script>
-        // 擴充後的菜單資料庫
-        const menus = {
+        // 預設菜單資料庫
+        const defaultMenus = {
             breakfast: [
                 "蛋餅", "豬肉滿福堡", "飯糰", "卡拉雞腿堡", 
                 "燒餅油條", "鐵板麵", "清粥小菜", "饅頭夾蛋",
-                "小籠包", "蘿蔔糕", "貝果", "蔥抓餅", 
-                "大冰奶+吐司", "廣東粥"
+                "小籠包", "蘿蔔糕", "貝果", "蔥抓餅"
             ],
             lunch: [
                 "雞腿便當", "牛肉麵", "水餃", "排骨飯", 
                 "滷肉飯", "義大利麵", "自助餐", "肉絲炒飯",
-                "咖哩飯", "鍋貼", "漢堡王", "燒臘飯",
-                "Subway", "涼麵", "海南雞飯", "鐵板燒"
+                "咖哩飯", "鍋貼", "漢堡王", "燒臘飯"
             ],
             dinner: [
                 "小火鍋", "韓式烤肉", "日式拉麵", "泰式料理", 
                 "牛排", "熱炒", "鹽酥雞", "壽司",
-                "麻辣燙", "披薩", "薑母鴨", "羊肉爐",
-                "居酒屋", "壽喜燒", "義式燉飯", "蒙古烤肉"
+                "麻辣燙", "披薩", "薑母鴨", "羊肉爐"
             ]
         };
 
@@ -401,21 +544,29 @@
             "#CC99FF", "#FF99CC", "#66CCCC", "#FFB366", "#CCFF66"
         ];
 
-        let currentCategory = 'breakfast';
-        let items = menus[currentCategory];
+        // 資料結構 V2
+        // appData = {
+        //    menus: { breakfast: [], lunch: [], dinner: [] },
+        //    stats: { breakfast: {}, lunch: {}, dinner: {} }
+        // }
         
-        // 狀態管理
-        let foodStats = JSON.parse(localStorage.getItem('food_spinner_stats')) || {};
+        let appData = {
+            menus: JSON.parse(JSON.stringify(defaultMenus)),
+            stats: { breakfast: {}, lunch: {}, dinner: {} }
+        };
+
+        let currentCategory = 'breakfast';
+        let items = []; // 當前轉盤項目
         let currentResult = "";
         let currentRating = 0;
+        let statsTabCategory = 'breakfast';
 
         const canvas = document.getElementById('wheel');
         const ctx = canvas.getContext('2d');
         const spinBtn = document.getElementById('spin-btn');
-        const modal = document.getElementById('resultModal');
-        const statsModal = document.getElementById('statsModal');
         const resultText = document.getElementById('resultText');
         const stars = document.querySelectorAll('.star');
+        const newItemInput = document.getElementById('newItemInput');
 
         let currentAngle = 0;
         let isSpinning = false;
@@ -424,8 +575,41 @@
 
         // 初始化
         function init() {
-            drawWheel();
+            loadData();
+            updateItemsAndWheel();
             setupStars();
+            
+            // 監聽 Enter 鍵新增項目
+            newItemInput.addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') addItem();
+            });
+        }
+
+        // 讀取資料
+        function loadData() {
+            const savedData = localStorage.getItem('food_spinner_data_v2');
+            if (savedData) {
+                appData = JSON.parse(savedData);
+            } else {
+                // 嘗試遷移舊資料 (如果有的話)
+                const oldStats = localStorage.getItem('food_spinner_stats');
+                if (oldStats) {
+                    // 這裡簡化處理，舊資料全部歸類到「不分類」或者乾脆重新開始
+                    // 為了系統乾淨，這裡選擇直接使用預設值，不繼承舊的混亂資料
+                    console.log("偵測到舊版資料，系統已升級至 V2 分類版本。");
+                }
+                saveData();
+            }
+        }
+
+        // 儲存資料
+        function saveData() {
+            localStorage.setItem('food_spinner_data_v2', JSON.stringify(appData));
+        }
+
+        function updateItemsAndWheel() {
+            items = appData.menus[currentCategory];
+            drawWheel();
         }
 
         // 設置星星點擊事件
@@ -459,7 +643,6 @@
             if (isSpinning) return;
             
             currentCategory = category;
-            items = menus[category];
             
             document.querySelectorAll('.meal-btn').forEach(btn => {
                 btn.classList.remove('active');
@@ -468,7 +651,7 @@
                 }
             });
 
-            drawWheel();
+            updateItemsAndWheel();
         }
 
         function getCategoryName(cat) {
@@ -478,6 +661,15 @@
 
         // 繪製轉盤
         function drawWheel() {
+            if (items.length === 0) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.font = "30px Microsoft JhengHei";
+                ctx.fillStyle = "#888";
+                ctx.textAlign = "center";
+                ctx.fillText("請先新增菜單項目", canvas.width/2, canvas.height/2);
+                return;
+            }
+
             const centerX = canvas.width / 2;
             const centerY = canvas.height / 2;
             const radius = canvas.width / 2 - 10;
@@ -502,7 +694,10 @@
                 ctx.textAlign = "right";
                 ctx.fillStyle = "#333";
                 // 動態調整字體大小以適應更多選項
-                const fontSize = items.length > 12 ? 24 : 36;
+                let fontSize = 36;
+                if (items.length > 20) fontSize = 18;
+                else if (items.length > 12) fontSize = 24;
+                
                 ctx.font = `bold ${fontSize}px Microsoft JhengHei`;
                 ctx.fillText(items[i], radius - 40, 10);
                 ctx.restore();
@@ -512,6 +707,10 @@
         // 旋轉邏輯
         function spin() {
             if (isSpinning) return;
+            if (items.length === 0) {
+                alert("菜單是空的，請先編輯菜單！");
+                return;
+            }
             
             isSpinning = true;
             spinBtn.disabled = true;
@@ -555,51 +754,77 @@
 
         function showResult(text) {
             resultText.textContent = text;
-            // 預先載入之前的評分（如果有）
-            if (foodStats[text] && foodStats[text].rating) {
-                setRating(foodStats[text].rating);
+            
+            // 讀取該類別下的該食物評分
+            const categoryStats = appData.stats[currentCategory] || {};
+            const foodData = categoryStats[text];
+
+            if (foodData && foodData.rating) {
+                setRating(foodData.rating);
             } else {
                 resetRating();
             }
-            modal.classList.add('show');
+            
+            document.getElementById('resultModal').classList.add('show');
         }
 
         // 確認選擇並儲存
         function confirmChoice() {
-            if (!foodStats[currentResult]) {
-                foodStats[currentResult] = { count: 0, rating: 0 };
+            // 確保該類別統計物件存在
+            if (!appData.stats[currentCategory]) {
+                appData.stats[currentCategory] = {};
+            }
+
+            const categoryStats = appData.stats[currentCategory];
+
+            if (!categoryStats[currentResult]) {
+                categoryStats[currentResult] = { count: 0, rating: 0 };
             }
             
-            foodStats[currentResult].count += 1;
+            categoryStats[currentResult].count += 1;
             
-            // 如果有評分，則更新評分
             if (currentRating > 0) {
-                foodStats[currentResult].rating = currentRating;
+                categoryStats[currentResult].rating = currentRating;
             }
 
-            localStorage.setItem('food_spinner_stats', JSON.stringify(foodStats));
-            
-            closeModal();
-            // 可選：顯示一個小的提示訊息
-            // alert(`已記錄！${currentResult} 次數+1`);
+            saveData();
+            closeModal('resultModal');
         }
 
-        function closeModal() {
-            modal.classList.remove('show');
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
         }
 
-        // 統計相關功能
+        // --- 統計相關功能 ---
         function openStats() {
+            // 開啟時預設顯示當前類別
+            switchStatsTab(currentCategory);
+            document.getElementById('statsModal').classList.add('show');
+        }
+
+        function switchStatsTab(category) {
+            statsTabCategory = category;
+            
+            // 更新 Tab UI
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(`tab-${category}`).classList.add('active');
+
+            renderStatsList();
+        }
+
+        function renderStatsList() {
             const list = document.getElementById('statsList');
             list.innerHTML = '';
 
-            // 將物件轉換為陣列並排序
-            const sortedItems = Object.entries(foodStats)
+            const categoryStats = appData.stats[statsTabCategory] || {};
+
+            // 轉換為陣列並排序
+            const sortedItems = Object.entries(categoryStats)
                 .sort(([,a], [,b]) => b.count - a.count)
-                .slice(0, 5); // 取前五名
+                .slice(0, 10); // 取前十名
 
             if (sortedItems.length === 0) {
-                list.innerHTML = '<li class="stat-empty">還沒有紀錄喔，快去轉轉盤吧！</li>';
+                list.innerHTML = `<li class="stat-empty">目前 ${getCategoryName(statsTabCategory)} 還沒有紀錄喔！</li>`;
             } else {
                 sortedItems.forEach(([name, data], index) => {
                     const stars = data.rating ? '★'.repeat(data.rating) : '';
@@ -615,22 +840,71 @@
                     list.insertAdjacentHTML('beforeend', html);
                 });
             }
-
-            statsModal.classList.add('show');
         }
 
-        function closeStats() {
-            statsModal.classList.remove('show');
+        // --- 編輯菜單功能 ---
+        function openEditMenu() {
+            // 編輯時針對當前選擇的類別
+            document.getElementById('editCategoryTitle').textContent = `目前編輯：${getCategoryName(currentCategory)}`;
+            renderEditList();
+            document.getElementById('editModal').classList.add('show');
+        }
+
+        function renderEditList() {
+            const list = document.getElementById('editList');
+            list.innerHTML = '';
+            
+            const currentItems = appData.menus[currentCategory];
+
+            currentItems.forEach((item, index) => {
+                const li = document.createElement('li');
+                li.className = 'edit-item';
+                li.innerHTML = `
+                    <span>${item}</span>
+                    <button class="delete-btn" onclick="removeItem(${index})">✕</button>
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        function addItem() {
+            const val = newItemInput.value.trim();
+            if (!val) return;
+            
+            // 檢查是否重複
+            if (appData.menus[currentCategory].includes(val)) {
+                alert("這個選項已經在菜單裡囉！");
+                return;
+            }
+
+            appData.menus[currentCategory].push(val);
+            saveData(); // 儲存
+            newItemInput.value = '';
+            renderEditList(); // 重新渲染列表
+            updateItemsAndWheel(); // 更新轉盤
+        }
+
+        function removeItem(index) {
+            if (confirm(`確定要刪除「${appData.menus[currentCategory][index]}」嗎？`)) {
+                appData.menus[currentCategory].splice(index, 1);
+                saveData();
+                renderEditList();
+                updateItemsAndWheel();
+            }
+        }
+        
+        function closeEditModal() {
+            closeModal('editModal');
+            // 確保轉盤最新
+            updateItemsAndWheel();
         }
 
         // 點擊遮罩關閉
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) closeModal();
-        });
-        
-        statsModal.addEventListener('click', (e) => {
-            if (e.target === statsModal) closeStats();
-        });
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.classList.remove('show');
+            }
+        }
 
         init();
 
